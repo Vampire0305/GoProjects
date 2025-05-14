@@ -135,5 +135,3 @@ go run cmd/server/main.go
 ### 👨‍💻 Author
 
 Made with ❤️ by [@sudarshanmg](https://github.com/sudarshanmg)
-
----
