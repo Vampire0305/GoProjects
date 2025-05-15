@@ -2,11 +2,15 @@ package auth
 
 import (
 	"database/sql"
+	"time"
 )
 
 type AuthRepository interface {
 	CreateUser(username string, passwordHash string) (int64, error)
 	FindByUsername(username string) (*User, error)
+	SaveRefreshToken(userID int64, token string, expires time.Time) error
+	GetRefreshToken(token string) (*RefreshToken, error)
+	RevokeRefreshToken(token string) error
 }
 
 type PostgresAuthRepository struct {
@@ -31,10 +35,38 @@ func (r *PostgresAuthRepository) FindByUsername(username string) (*User, error) 
 	err := r.DB.QueryRow(query, username).Scan(
 		&user.ID, &user.Username, &user.PasswordHash, &user.CreatedAt,
 	)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	return user, nil
+}
+
+func (r *PostgresAuthRepository) SaveRefreshToken(userID int64, token string, expires time.Time) error {
+	query := `INSERT INTO refresh_tokens (user_id, token, expires_at) VALUES ($1, $2, $3);`
+
+	_, err := r.DB.Exec(query, userID, token, expires)
+	return err
+}
+
+func (r *PostgresAuthRepository) GetRefreshToken(token string) (*RefreshToken, error) {
+	query := `SELECT id, user_id, token, expires_at, created_at, revoked
+            FROM refresh_tokens
+            WHERE token = $1;
+            `
+
+	rt := &RefreshToken{}
+	err := r.DB.QueryRow(query, token).Scan(
+		&rt.ID, &rt.UserID, &rt.Token, &rt.ExpiresAt, &rt.CreatedAt, &rt.Revoked,
+	)
 
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
+	return rt, err
+}
 
-	return user, nil
+func (r *PostgresAuthRepository) RevokeRefreshToken(token string) error {
+	query := `UPDATE refresh_tokens SET revoked = true WHERE token = $1;`
+	_, err := r.DB.Exec(query, token)
+	return err
 }

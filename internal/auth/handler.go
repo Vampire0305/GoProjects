@@ -40,11 +40,34 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := h.service.Login(req)
+	accesstoken, refreshToken, err := h.service.Login(req)
 	if err != nil {
 		response.WriteError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 
-	response.WriteJSON(w, http.StatusOK, map[string]string{"token": token})
+	response.WriteJSON(w, http.StatusOK, map[string]string{
+		"access_token":  accesstoken,
+		"refresh_token": refreshToken,
+	})
+}
+
+func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+
+	var req RefreshTokenRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.WriteError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	newToken, err := h.service.Refresh(req.RefreshToken)
+	if err != nil {
+		response.WriteError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	response.WriteJSON(w, http.StatusOK, map[string]string{
+		"access_token": newToken,
+	})
 }

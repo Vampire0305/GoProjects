@@ -4,9 +4,10 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/sudarshanmg/gotask/pkg/response"
 )
 
@@ -21,7 +22,8 @@ func AuthMiddleware(secret string) func(http.Handler) http.Handler {
 
 			tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
 
-			token, err := jwt.Parse(tokenStr, func(t *jwt.Token) (interface{}, error) {
+			claims := &jwt.RegisteredClaims{}
+			token, err := jwt.ParseWithClaims(tokenStr, claims, func(t *jwt.Token) (interface{}, error) {
 				if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 					return nil, fmt.Errorf("unexpected signing method")
 				}
@@ -33,13 +35,11 @@ func AuthMiddleware(secret string) func(http.Handler) http.Handler {
 				return
 			}
 
-			claims, ok := token.Claims.(jwt.MapClaims)
-			if !ok || claims["sub"] == nil {
-				response.WriteError(w, http.StatusUnauthorized, "invalid token claims")
+			userID, err := strconv.ParseInt(claims.Subject, 10, 64)
+			if err != nil {
+				response.WriteError(w, http.StatusUnauthorized, "invalid subject claim")
 				return
 			}
-
-			userID := int64(claims["sub"].(float64)) // JWT parses numbers as float64
 
 			ctx := context.WithValue(r.Context(), "userID", userID)
 			next.ServeHTTP(w, r.WithContext(ctx))
