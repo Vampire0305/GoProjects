@@ -41,8 +41,8 @@ func (s *Handler) GetAllTasks(w http.ResponseWriter, r *http.Request) {
 	pageStr := r.URL.Query().Get("page")
 	limitStr := r.URL.Query().Get("limit")
 	completedStr := r.URL.Query().Get("completed")
-	sort := r.URL.Query().Get("sort")   // e.g., "created_at"
-	order := r.URL.Query().Get("order") // e.g., "asc" or "desc"
+	sort := r.URL.Query().Get("sort")
+	order := r.URL.Query().Get("order")
 
 	var completed *bool
 	if completedStr == "true" {
@@ -73,15 +73,13 @@ func (s *Handler) GetAllTasks(w http.ResponseWriter, r *http.Request) {
 		response.WriteError(w, http.StatusInternalServerError, "failed to fetch tasks")
 		return
 	}
-	response.WriteJSON(w, http.StatusOK, map[string]any{
-		"data": tasks,
-		"meta": map[string]any{
-			"page":        page,
-			"limit":       limit,
-			"total":       total,
-			"total_pages": totalPages,
-		},
-	})
+
+	w.Header().Set("X-Total-Count", strconv.FormatInt(total, 10))
+	w.Header().Set("X-Total-Pages", strconv.Itoa(totalPages))
+	w.Header().Set("X-Total-Count", strconv.Itoa(page))
+	w.Header().Set("X-Total-Count", strconv.Itoa(limit))
+
+	response.WriteJSON(w, http.StatusOK, tasks)
 }
 
 func (s *Handler) GetTaskByID(w http.ResponseWriter, r *http.Request) {
