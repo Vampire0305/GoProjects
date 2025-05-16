@@ -11,6 +11,7 @@ type AuthRepository interface {
 	SaveRefreshToken(userID int64, token string, expires time.Time) error
 	GetRefreshToken(token string) (*RefreshToken, error)
 	RevokeRefreshToken(token string) error
+	RevokeAllRefreshTokens(userID int64) error
 }
 
 type PostgresAuthRepository struct {
@@ -68,5 +69,11 @@ func (r *PostgresAuthRepository) GetRefreshToken(token string) (*RefreshToken, e
 func (r *PostgresAuthRepository) RevokeRefreshToken(token string) error {
 	query := `UPDATE refresh_tokens SET revoked = true WHERE token = $1;`
 	_, err := r.DB.Exec(query, token)
+	return err
+}
+
+func (r *PostgresAuthRepository) RevokeAllRefreshTokens(userID int64) error {
+	query := `UPDATE refresh_tokens SET revoked = true WHERE user_id = $1;`
+	_, err := r.DB.Exec(query, userID)
 	return err
 }

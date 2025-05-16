@@ -71,3 +71,42 @@ func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
 		"access_token": newToken,
 	})
 }
+
+func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+
+	var req RefreshTokenRequest
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.WriteError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	err := h.service.Logout(req.RefreshToken)
+	if err != nil {
+		response.WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	response.WriteJSON(w, http.StatusOK, map[string]string{
+		"message": "logged out successfully",
+	})
+}
+
+func (h *Handler) LogoutAll(w http.ResponseWriter, r *http.Request) {
+	userID := GetUserID(r)
+	if userID == 0 {
+		response.WriteError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	err := h.service.LogoutAll(userID)
+	if err != nil {
+		response.WriteError(w, http.StatusInternalServerError, "failed to log logout")
+		return
+	}
+
+	response.WriteJSON(w, http.StatusOK, map[string]string{
+		"message": "logged out successfully",
+	})
+}

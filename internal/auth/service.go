@@ -17,6 +17,8 @@ type AuthService interface {
 	Register(req RegisterRequest) (*User, error)
 	Login(req LoginRequest) (string, string, error)
 	Refresh(refreshToken string) (string, error)
+	Logout(refreshToken string) error
+	LogoutAll(userID int64) error
 }
 
 type authService struct {
@@ -121,4 +123,12 @@ func (s *authService) Refresh(refreshToken string) (string, error) {
 	}
 
 	return signed, nil
+}
+
+func (s *authService) Logout(refreshToken string) error {
+	return s.repo.RevokeRefreshToken(refreshToken)
+}
+
+func (s *authService) LogoutAll(userID int64) error {
+	return s.repo.RevokeAllRefreshTokens(userID)
 }
