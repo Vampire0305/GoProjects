@@ -1,4 +1,4 @@
-## 📌 gotask — Secure Task Manager API in Go
+## 📌 gotask — Secure Task Manager API in Go lang
 
 A production-ready, modular REST API built with Go, PostgreSQL, and JWT authentication.
 
